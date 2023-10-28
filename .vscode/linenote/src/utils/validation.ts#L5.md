@@ -1,0 +1,1 @@
+Nhận vào 1 check schema để biết thành middle ware rồi dùng run để chạy

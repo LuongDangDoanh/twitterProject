@@ -1,0 +1,1 @@
+Nhược điểm khi xài async, phải dùng try catch (hoặc Promise => dị giáo)khắc phục
