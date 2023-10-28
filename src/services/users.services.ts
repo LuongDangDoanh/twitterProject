@@ -1,10 +1,12 @@
-import User from '~/models/User.schema'
+import User from '~/models/schemas/User.schema'
 import databaseService from './database.services'
 import { RegisterReqBody } from '~/models/requests/User.request'
 import { hassPassword } from '~/utils/crypto'
 import { signToken } from '~/utils/jwt'
 import { TokenType } from '~/constants/enums'
 import { config } from 'dotenv'
+import RefreshToken from '~/models/schemas/RefreshToken.schema'
+import { ObjectId } from 'mongodb'
 config()
 class UsersService {
   // Viết hàm nhận vào user_id để bỏ vào payload tạo access token
@@ -43,10 +45,24 @@ class UsersService {
     // lấy user_id từ user mới tạo
     const user_id = result.insertedId.toString()
     const [access_token, refresh_token] = await this.signAccessAndRefeshToken(user_id)
+    // lưu refresh_token vào database
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
+        user_id: new ObjectId(user_id),
+        token: refresh_token
+      })
+    )
     return { access_token, refresh_token }
   }
   async login(user_id: string) {
     const [access_token, refresh_token] = await this.signAccessAndRefeshToken(user_id)
+    // lưu refresh_token vào database
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
+        user_id: new ObjectId(user_id),
+        token: refresh_token
+      })
+    )
     return { access_token, refresh_token }
   }
 }
