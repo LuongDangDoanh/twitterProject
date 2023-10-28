@@ -7,6 +7,7 @@ import { ParamsDictionary } from 'express-serve-static-core'
 import { ErrorWithStatus } from '~/models/Erro'
 import { ObjectId } from 'mongodb'
 import { USERS_MESSAGES } from '~/constants/messages'
+import { result } from 'lodash'
 export const loginController = async (req: Request, res: Response) => {
   // lấy user_id từ user của req
   const user = req.user as User
@@ -26,4 +27,12 @@ export const registerController = async (req: Request<ParamsDictionary, any, Reg
     message: USERS_MESSAGES.REGISTTER_SUCCESS,
     result
   })
+}
+
+export const logoutController = async (req: Request, res: Response) => {
+  // lấy refresh_token từ req.body
+  const { refresh_token } = req.body
+  // và vào database xóa refresh_token này
+  const result = await usersService.logout(refresh_token)
+  res.json(result)
 }
