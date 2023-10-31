@@ -14,6 +14,7 @@ import { validate } from '~/utils/validation'
 import { verifyToken } from '~/utils/jwt'
 import { JsonWebTokenError } from 'jsonwebtoken'
 import { capitalize } from 'lodash'
+import { ObjectId } from 'mongodb'
 
 // làm 1 middleware kiểm tra xem email và pass có đc truyền lên hay không?
 
@@ -276,6 +277,95 @@ export const emailVerifyTokenValidator = validate(
               })
               // sau khi verify thành công ta đc payload của email_verify_token: decoded_email_verify_token
               ;(req as Request).decoded_email_verify_token = decoded_email_verify_token
+            } catch (err) {
+              if (err instanceof JsonWebTokenError) {
+                throw new ErrorWithStatus({
+                  message: capitalize((err as JsonWebTokenError).message),
+                  status: HTTP_STATUS.UNAUTHORIZED
+                })
+              }
+              throw err
+            }
+            return true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+
+export const forgotPasswordValidator = validate(
+  checkSchema(
+    {
+      email: {
+        notEmpty: {
+          errorMessage: USERS_MESSAGES.EMAIL_IS_REQUIRED
+        },
+        isEmail: {
+          errorMessage: USERS_MESSAGES.EMAIL_IS_INVALID
+        },
+        trim: true,
+        custom: {
+          options: async (value, { req }) => {
+            const user = await databaseService.users.findOne({
+              email: value
+            })
+            if (user === null) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGES.USER_NOT_FOUND,
+                status: HTTP_STATUS.NOT_FOUND
+              })
+            }
+            req.user = user
+            return true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+
+export const verifyForgotPasswordTokenValidator = validate(
+  checkSchema(
+    {
+      forgot_password_token: {
+        trim: true,
+        custom: {
+          options: async (value: string, { req }) => {
+            // kiểm tra người dùng có truyền lên forgot_password_token hay không ?
+            if (!value) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGES.FORGOT_PASSWORD_TOKEN_IS_REQUIRED,
+                status: HTTP_STATUS.UNAUTHORIZED
+              })
+            }
+            //verify forgot_password_token để lấy decoded_email_verify_token
+            try {
+              const decoded_forgot_password_token = await verifyToken({
+                token: value,
+                secretOrPublicKey: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN as string
+              })
+              // sau khi verify thành công ta đc payload của email_verify_token: decoded_email_verify_token
+              ;(req as Request).decoded_forgot_password_token = decoded_forgot_password_token
+              const { user_id } = decoded_forgot_password_token
+              //dựa vào user_id tìm user
+              const user = await databaseService.users.findOne({
+                _id: new ObjectId(user_id)
+              })
+              if (user === null) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.USER_NOT_FOUND,
+                  status: HTTP_STATUS.NOT_FOUND
+                })
+              }
+              if (user.forgot_password_token !== value) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.FORGOT_PASSWORD_TOKEN_IS_INCORRECT,
+                  status: HTTP_STATUS.UNAUTHORIZED
+                })
+              }
             } catch (err) {
               if (err instanceof JsonWebTokenError) {
                 throw new ErrorWithStatus({
