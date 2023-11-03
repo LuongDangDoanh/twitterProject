@@ -149,6 +149,18 @@ class UsersService {
     console.log(forgot_password_token)
     return { message: USERS_MESSAGES.CHECK_EMAIL_TO_RESET_PASSWORD }
   }
+  async resetPassword({ user_id, password }: { user_id: string; password: string }) {
+    await databaseService.users.updateOne({ _id: new ObjectId(user_id) }, [
+      {
+        $set: {
+          password: hassPassword(password),
+          forgot_password_token: '',
+          update_at: '$$NOW' //lấy time trên Mongo
+        }
+      }
+    ])
+    return { message: USERS_MESSAGES.RESET_PASSWORD_SUCCESS }
+  }
 }
 
 const usersService = new UsersService()
