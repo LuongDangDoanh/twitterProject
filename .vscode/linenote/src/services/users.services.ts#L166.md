@@ -1,1 +1,0 @@
-=> Thằng này cho phép hoặc không cho phép 1 thuộc tính xuất hiện

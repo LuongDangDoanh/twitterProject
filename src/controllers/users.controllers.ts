@@ -1,11 +1,13 @@
 import { Request, Response } from 'express'
 import User from '~/models/schemas/User.schema'
 import {
+  GetProfileReqParams,
   LoginReqBody,
   LogoutReqBody,
   RegisterReqBody,
   ResetPasswordReqBody,
   TokenPayLoad,
+  UpdateMeReqBody,
   VerifyEmailReqBody
 } from '~/models/requests/User.request'
 import databaseService from '~/services/database.services'
@@ -22,7 +24,10 @@ export const loginController = async (req: Request<ParamsDictionary, any, LoginR
   const user = req.user as User
   const user_id = user._id as ObjectId
   // dùng user_id tạo access_token và refresh_token
-  const result = await usersService.login(user_id.toString()) //
+  const result = await usersService.login({
+    user_id: user_id.toString(),
+    verify: user.verify
+  }) //
   // dùng access_token và refresh_token cho client
   res.json({
     message: USERS_MESSAGES.LOGIN_SUCCESS,
@@ -119,9 +124,12 @@ export const resendEmailVerifyController = async (req: Request, res: Response) =
 
 export const forgotPassWordController = async (req: Request, res: Response) => {
   // lấy user_id từ user của req
-  const { _id } = req.user as User
+  const { _id, verify } = req.user as User
   //dùng _id tìm và cập nhật lại user thêm vào forgot_password_token
-  const result = await usersService.forgotPassword((_id as ObjectId).toString())
+  const result = await usersService.forgotPassword({
+    user_id: (_id as ObjectId).toString(),
+    verify
+  })
   return res.json(result)
 }
 
@@ -142,13 +150,42 @@ export const resetPassWordController = async (
   const result = await usersService.resetPassword({ user_id, password })
 }
 
-export const getMeController = async (req: Request, res: Response) => {
+export const getMeController = async (req: Request<ParamsDictionary, any, UpdateMeReqBody>, res: Response) => {
   // muốn lấy profile của mình thì phải có cái user_id
   const { user_id } = req.decoded_authorization as TokenPayLoad
   // dùng user_id tìm user
   const user = await usersService.getMe(user_id)
   return res.json({
     message: USERS_MESSAGES.GET_ME_SUCCESS,
+    result: user
+  })
+}
+
+export const updateMeController = async (req: Request, res: Response) => {
+  // muốn update thì cần user_id, và các thông tin cần update
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const { body } = req.body
+  //? Cách 1 => dùng Lodash
+  // const body = pick(req.body, [
+  //   'username',
+  //   'bio',
+  //   'image_url',
+  //   'location',
+  //   'website'
+  // ])
+  const result = await usersService.updateMe(user_id, body)
+  return res.json({
+    message: USERS_MESSAGES.UPDATE_ME_SUCCESS,
+    result
+  })
+}
+
+export const getProfileController = async (req: Request<GetProfileReqParams>, res: Response) => {
+  // tìm user theo username
+  const { username } = req.params
+  const user = await usersService.getProfile(username)
+  return res.json({
+    message: USERS_MESSAGES.GET_PROFILE_SUCCESS,
     result: user
   })
 }
