@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   emailVerifyTokenController,
   forgotPassWordController,
+  getMeController,
   loginController,
   logoutController,
   registerController,
@@ -110,5 +111,14 @@ usersRouter.post(
   verifyForgotPasswordTokenValidator,
   wrapAsync(resetPassWordController)
 )
+
+/*
+  des: get profile của user
+  path: '/me'
+  method: get
+  Header: {Authorization: Bearer <access_token>}
+  body: {}
+  */
+usersRouter.get('/me', accessTokenValidator, wrapAsync(getMeController))
 
 export default usersRouter

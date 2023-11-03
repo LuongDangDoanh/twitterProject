@@ -141,3 +141,14 @@ export const resetPassWordController = async (
   // cập nhật
   const result = await usersService.resetPassword({ user_id, password })
 }
+
+export const getMeController = async (req: Request, res: Response) => {
+  // muốn lấy profile của mình thì phải có cái user_id
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  // dùng user_id tìm user
+  const user = await usersService.getMe(user_id)
+  return res.json({
+    message: USERS_MESSAGES.GET_ME_SUCCESS,
+    result: user
+  })
+}
